@@ -12,6 +12,7 @@ class ChatScreen extends StatefulWidget {
 }
 
 class _ChatScreenState extends State<ChatScreen> {
+  final messageTextController = TextEditingController();
   final cloud = Firestore.instance;
   final _auth = FirebaseAuth.instance;
   FirebaseUser loggedInUser;
@@ -93,6 +94,7 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
         leading: null,
         actions: <Widget>[
@@ -122,18 +124,25 @@ class _ChatScreenState extends State<ChatScreen> {
                     ),
                   );
                 }
-                  final messages = snapshot.data.documents;
-                  List<Text> messageWidgets = [];
+                  final messages = snapshot.data.documents.reversed;
+                  List<MessageBubble> messageWidgets = [];
                   for (var message in messages) {
                     final messageText = message.data['text'];
                     final messageSender = message.data['user'];
+                    final current = loggedInUser.email;
+                    bool comm = false;
+                    if (current == messageSender) {
+                      comm = true;
+                    }
 
-                    final messageWidget = Text(
-                        '$messageText from $messageSender');
+                    final messageWidget = MessageBubble(sender:'$messageSender', text:'$messageText', comm: comm);
                     messageWidgets.add(messageWidget);
                   }
-                    return ListView(
-                      children: messageWidgets,
+                    return Expanded(
+                      child: ListView(
+                        reverse: true,
+                        children: messageWidgets,
+                      ),
                     );
               },
             ),
@@ -148,11 +157,13 @@ class _ChatScreenState extends State<ChatScreen> {
                         //Do something with the user input.
                         message = value;
                       },
+                      controller: messageTextController,
                       decoration: kMessageTextFieldDecoration,
                     ),
                   ),
                   FlatButton(
                     onPressed: () {
+                      messageTextController.clear();
                       //Implement send functionality.
                       cloud.collection('messages').add({
                         'user' : loggedInUser.email,
@@ -170,6 +181,59 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class MessageBubble extends StatelessWidget {
+  MessageBubble({this.sender, this.text, this.comm});
+  final bool comm;
+  final String sender;
+  final String text;
+  final BorderRadius senders = BorderRadius.only(
+    bottomLeft: Radius.circular(30.0),
+    topLeft: Radius.circular(30.0),
+    bottomRight: Radius.circular(30.0),
+  );
+  final BorderRadius receiver = BorderRadius.only(
+    bottomLeft: Radius.circular(30.0),
+    topRight: Radius.circular(30.0),
+    bottomRight: Radius.circular(30.0),
+  );
+  @override
+  Widget build(BuildContext context) {
+    // TODO: implement build
+    return Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: Column(
+        crossAxisAlignment: comm ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+        children: <Widget>[
+
+          Text(
+            sender,
+            style: TextStyle(
+              color: Colors.black,
+              fontSize: 10
+            ),
+          ),
+          Material(
+            borderRadius: comm ? senders : receiver,
+            elevation: 5.0,
+            color: Colors.green,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 20.0),
+              child: Text(
+                text,
+                style: TextStyle(
+                  fontSize: 18,
+                  color: Colors.white,
+                ),
+
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
